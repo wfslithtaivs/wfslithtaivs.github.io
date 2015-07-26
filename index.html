@@ -201,7 +201,7 @@ confusionMatrix(predRPART, testing$classe)</code></pre>
 ## Balanced Accuracy      0.7730  0.63077  0.64206   0.5000  0.73362</code></pre>
 <pre><code>fancyRpartPlot(modelRPART$finalModel) </code></pre>
 <p><img src="https://raw.githubusercontent.com/wfslithtaivs/wfslithtaivs.github.io/master/PML-Project_files/figure-html/unnamed-chunk-8-1.png" title alt width="672"></p>
-<p>It is sad, but my computer failed to build random forest inside R Markdown report and I can't provide all the metrics and graphics that I planned to (this is the lesson to me to save all the versions (or just screenshot), not to live in hope of reproducibility of any code at any given moment). But believe me, the "rf" function give 99% accuracy due to cross-validation on the separated test set and predicted all the test cases correctly.   
+<p>It is sad, but my computer failed to build random forest inside R Markdown report and I can't provide all the metrics and graphics that I planned to (this is the lesson to me to save all the versions (or just screenshot), not to live in hope of reproducibility of any code at any given moment). But believe me, the "rf" function gives 99% accuracy due to cross-validation on the separated test set and predicted all the test cases correctly.   
 </p>
 <pre><code>#modelGBM &lt;- train(classe ~ ., method = "gbm", data = training)
 #print(modelGBM$finalModel)
