@@ -1,2 +1,2 @@
-# wfslithtaivs.github.io
-Practical Machine Learning, Project July 2015
+# wfslithtaivs.io
+Practical Machine Learning Course Project, July '15

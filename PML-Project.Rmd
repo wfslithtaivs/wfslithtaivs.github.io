@@ -1,0 +1,187 @@
+---
+title: "Practical Machine Learning, Project July ‘15"
+author: "Kate Sergeeva"
+output: html_document
+---
+
+## Project summary
+
+The goal of this project is using machine learning techniques to find a best model which will be able to predict how good athletes are doing the particular types of exercises and helps to catch the common mistakes.
+
+Data for this project kindly provided by a group of enthusiasts who take measurements about themselves regularly using devices such as Jawbone Up, Nike FuelBand, and Fitbit to find patterns in their behavior to improve their health.
+
+We will use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. 
+
+*More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).*
+
+Project report will describe the following:
+- how the model was built,
+- how the cross-validation was used,
+- how out of sample error was estimated, 
+- how other choices been made.
+
+And provide prediction for 20 different test cases.
+
+## Contents
+
+- Loading and cleansing data
+- Building models
+- Cross-validation to measure "out of sample error"
+- Model selection
+- Report the results of test cases processing
+
+## Loading and cleansing data
+
+```{r, cache=TRUE}
+train <- read.csv(file = "/Users/macbookpro/Downloads/pml-training.csv", header = TRUE, sep = ",")
+test <- read.csv(file = "/Users/macbookpro/Downloads/pml-testing.csv", header = TRUE, sep = ",")
+```
+
+The test cases require predictions for particular moments with no connections to the style of particular athlet and it allows us to simply exclude from the following consideration the name of athlet and any time series data and row numbers. 
+
+### Removing meaningless variables
+
+```{r}
+modelTrain <- subset(train, select = -c(user_name, raw_timestamp_part_1, raw_timestamp_part_2,
+                                        cvtd_timestamp, new_window, num_window, X))
+```
+
+### Handling missing values
+
+Closer look to the data showed that it contains some inappropriate symbols and true missing values, that is need to be handled of using replacement and imputing techniques.
+
+```{r}
+modelTrain[modelTrain == ""] <- NA
+#looks like data comes from the Excel or similar editor and contains such a nice 
+modelTrain[modelTrain == "#DIV/0!"] <- NA 
+
+# Lookup for NA columns 
+naVars <- data.frame(apply(modelTrain, 2, function(x) {sum(is.na(x))}))
+naVars$toRemove <- apply(naVars, 1, function(y) {y == length(modelTrain[, 1])})
+columnsToExclude <- rownames(naVars[naVars$toRemove == "TRUE", ])
+columnsToExclude
+
+# Remove empty predictors
+modelTrain <- subset(modelTrain, select = -c(kurtosis_yaw_belt, skewness_yaw_belt, 
+                                             kurtosis_yaw_dumbbell, skewness_yaw_dumbbell, 
+                                             kurtosis_yaw_forearm, skewness_yaw_forearm ))
+```
+
+### Make up column classes 
+
+Before any modeling it is a good idea to check the variables classes and make sure that thea are all have the correct data type. 
+
+```{r}
+# Convert character columns into numeric
+library(taRifx)
+modelTrain <- japply(modelTrain, which(sapply(modelTrain, class)=="character"),as.integer)
+modelTrain <- japply(modelTrain, which(sapply(modelTrain, class)=="integer"),as.integer)
+modelTrain <- japply(modelTrain, which(sapply(modelTrain, class)=="factor"),as.integer)
+
+# Convert classe to factor
+modelTrain$classe <- as.factor(modelTrain$classe)
+```
+
+### Tricky moment
+
+Current number of variables most likely will cause the very long executing process and it would be better to reduce some dimensions. For example, instead of using nearZeroVar function I decided to play with lucky "cut-off" around number of missing values in the "nothing to impute about" columns. 
+
+```{r}
+library(e1071)
+dim(modelTrain)
+modelTrain[is.na(modelTrain)] <- 0
+colAn <- data.frame(colSums(subset(modelTrain, select = -classe) == 0))
+modelTrain <- modelTrain[, - which(colAn[, 1] > 19000)] 
+dim(modelTrain)
+```
+
+Now we have ready to modeling clean and nice data set with a manageable number of predictors.
+
+## Building models
+
+Before going deep into modeling better previously to take care of possible ways of improving productivity of your computer and use parallel processing if it is possible.
+
+```{r, cache=TRUE}
+# Do parallel 
+library(doParallel)
+registerDoParallel(cores=4)
+```
+
+### Subsetting data for cross-validation
+
+The idea of cross-validation is very nice and undoubtedly useful - to split data into two separated parts (around 70/30), learn the model at the biggest one and than estimate the out of sample error on the smallest one. The idea might be complicated with number of splits and their usage, but in case of our pretty huge data set with the managable amount of predictors I will follow of idea of just two random splits. 
+
+```{r}
+library(caret)
+inTrain <- createDataPartition(y = modelTrain$classe, p = 0.7, list = FALSE)
+training <- modelTrain[inTrain, ] 
+testing <- modelTrain[-inTrain, ]
+dim(training); dim(testing)
+```
+
+### Modeling
+
+For classification task with more than two types of outcomes convinient to use classification trees algorithms and two different tree-based models will be trained - regular classification tree provided by "rpart"-method and random forest. 
+
+```{r, cache=TRUE}
+library(caret)
+library(randomForest)
+library(rattle)
+
+modelRPART <- train(classe ~ ., method = "rpart", data = training,  na.action = na.pass)
+print(modelRPART$finalModel)
+predRPART <- predict(modelRPART, subset(testing, select = -classe))
+confusionMatrix(predRPART, testing$classe)
+fancyRpartPlot(modelRPART$finalModel) 
+
+#modelGBM <- train(classe ~ ., method = "gbm", data = training)
+#print(modelGBM$finalModel)
+#predGBM <- prediction(modelGBM, subset(testing, select = -classe))
+#confusionMatrix(predGBM, testing$classe)
+#varImpPlot(modelGBM$finalModel)
+
+modelRF <- train(classe ~ ., method = "rf", data = training,  na.action = na.pass)
+print(modelRF$finalModel)
+predRF <- predict(modelRF, subset(testing, select = -classe))
+confusionMatrix(predRF, testing$classe)
+varImpPlot(modelRF$finalModel)
+plot(modelRF$finalModel, log = "y")
+```
+
+Random forest gives an excellent result and should be used for futher predictions.
+
+## Test case prediction
+
+To use trained model on the test case all the data manipulations that were done with the train set should be applied to the test one.
+
+* Code not shown, but it is the same as test set manipulations - cleansing and reducing.*
+
+```{r, echo = FALSE}
+testTry <- test
+# reproduce data transformations
+testTry <- subset(testTry, select = -c(user_name, raw_timestamp_part_1, raw_timestamp_part_2,
+                                        cvtd_timestamp, new_window, num_window, X))
+testTry[testTry == ""] <- NA
+testTry[testTry == "#DIV/0!"] <- NA
+testTry <- subset(testTry, select = -c(kurtosis_yaw_belt, skewness_yaw_belt, 
+                                             kurtosis_yaw_dumbbell, skewness_yaw_dumbbell, 
+                                             kurtosis_yaw_forearm, skewness_yaw_forearm ))
+library(taRifx)
+testTry <- japply(testTry, which(sapply(testTry, class)=="character"),as.integer)
+testTry <- japply(testTry, which(sapply(testTry, class)=="integer"),as.integer)
+testTry <- japply(testTry, which(sapply(testTry, class)=="factor"),as.integer)
+
+# NAs to zeros
+testTry[is.na(testTry)] <- 0
+
+# Convert classe to factor
+testTry <- testTry[ , - which(colAn[, 1] > 19000)] # (without classe!)
+```
+
+Final prediction of test cases gives the following vector:
+
+```{r}
+#predTestTry <- predict(modelRF, testTry)
+```
+
+Which is: B A B A A E D B A A B C B A E E A B B B, and showed the 100% accuracy in test cases prediction. 
