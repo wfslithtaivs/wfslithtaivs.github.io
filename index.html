@@ -168,6 +168,7 @@ library(randomForest)</code></pre>
 ##    3) roll_belt&gt;=130.5 1137   12 5 (0.011 0 0 0 0.99) *</code></pre>
 <pre><code>predRPART &lt;- predict(modelRPART, subset(testing, select = -classe))
 confusionMatrix(predRPART, testing$classe)</code></pre>
+
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
@@ -199,22 +200,70 @@ confusionMatrix(predRPART, testing$classe)</code></pre>
 ## Detection Rate         0.2605  0.06542  0.08649   0.0000  0.08598
 ## Detection Prevalence   0.5251  0.12710  0.26151   0.0000  0.08632
 ## Balanced Accuracy      0.7730  0.63077  0.64206   0.5000  0.73362</code></pre>
+
 <pre><code>fancyRpartPlot(modelRPART$finalModel) </code></pre>
 <p><img src="https://raw.githubusercontent.com/wfslithtaivs/wfslithtaivs.github.io/master/PML-Project_files/figure-html/unnamed-chunk-8-1.png" title alt width="672"></p>
-<p>It is sad, but my computer failed to build random forest inside R Markdown report and I can't provide all the metrics and graphics that I planned to (this is the lesson to me to save all the versions (or just screenshot), not to live in hope of reproducibility of any code at any given moment). But believe me, the "rf" function gives 99% accuracy due to cross-validation on the separated test set and predicted all the test cases correctly.   
-</p>
-<pre><code>#modelGBM &lt;- train(classe ~ ., method = "gbm", data = training)
-#print(modelGBM$finalModel)
-#predGBM &lt;- prediction(modelGBM, subset(testing, select = -classe))
-#confusionMatrix(predGBM, testing$classe)
-#varImpPlot(modelGBM$finalModel)
 
-#modelRF &lt;- train(classe ~ ., method = "rf", data = training,  na.action = na.pass)
-#print(modelRF$finalModel)
-#predRF &lt;- predict(modelRF, subset(testing, select = -classe))
-#confusionMatrix(predRF, testing$classe)
-#varImpPlot(modelRF$finalModel)
-#plot(modelRF$finalModel, log = "y")</code></pre>
+<p>It is sad, but my computer failed to build random forest inside R Markdown report and I can't provide all the metrics and graphics that I planned to (this is the lesson to me to save all the versions (or just screenshot), not to live in hope of reproducibility of any code at any given moment). But believe me, the "rf" function gives 99% accuracy due to cross-validation on the separated test set and predicted all the test cases correctly.  
+
+Update: I got it at the last moment - build separately and manually add data to this report. Sorry for some mess. 
+</p>
+<pre><code>#modelRF &lt;- train(classe ~ ., method = "rf", data = training)</code></pre>
+<pre><code>print(modelRF$finalModel)</code></pre>
+<pre><code>
+## Call:
+## randomForest(x = x, y = y, mtry = param$mtry) 
+##               Type of random forest: classification 
+##                    Number of trees: 500
+## No. of variables tried at each split: 2
+##        OOB estimate of  error rate: 0.63%
+## Confusion matrix:
+##    1    2    3    4    5  class.error
+##   1 3904    1    1    0    0 0.0005120328
+##   2   14 2637    7    0    0 0.0079006772
+##   3    0   16 2374    6    0 0.0091819699
+##   4    0    0   32 2219    1 0.0146536412
+##   5    0    0    1    7 2517 0.0031683168
+</code></pre>
+<pre>predRF &lt;- prediction(modelRF, subset(testing, select = -classe))</pre>
+<pre>confusionMatrix(predRF, testing$classe)</pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    1    2    3    4    5
+##          1 1672    9    0    0    0
+##          2    2 1129    9    0    0
+##         3    0    1 1015   12    2
+##         4    0    0    2  951    1
+##          5    0    0    0    1 1079
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.9934         
+##                  95% CI : (0.991, 0.9953)
+##     No Information Rate : 0.2845           
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.9916         
+##  Mcnemar's Test P-Value : NA              
+## 
+## Statistics by Class:
+## 
+##                      Class: 1 Class: 2 Class: 3 Class: 4 Class: 5
+## Sensitivity             0.9988   0.9912   0.9893   0.9865   0.9972
+## Specificity           0.9979   0.9977   0.9969   0.9994   0.9998
+## Pos Pred Value          0.9946   0.9904   0.9854   0.9969   0.9991
+## Neg Pred Value         0.9995   0.9979   0.9977   0.9974   0.9994
+## Prevalence             0.2845   0.1935   0.1743   0.1638   0.1839
+## Detection Rate         0.2841   0.1918   0.1725   0.1616   0.1833
+## Detection Prevalence   0.2856   0.1937   0.1750   0.1621   0.1835
+## Balanced Accuracy     0.9983   0.9945   0.9931   0.9930   0.9985
+</code></pre>
+<pre><code>varImpPlot(modelRF$finalModel) </code></pre>
+<p><img src="https://github.com/wfslithtaivs/wfslithtaivs.github.io/blob/master/PML-Project_files/figure-html/Rplot.png?raw=true" title alt width="672"></p>
+<pre><code>plot(modelRF$finalModel, log = "y")</code></pre>
+See how the accuracy increase with the number of trees.
+<p><img src="https://github.com/wfslithtaivs/wfslithtaivs.github.io/blob/master/PML-Project_files/figure-html/Rplot01.png?raw=true" title alt width="672"></p>
 <p>Random forest gives an excellent result and should be used for futher predictions.</p>
 </div>
 
