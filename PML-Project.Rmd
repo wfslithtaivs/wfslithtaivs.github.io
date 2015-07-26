@@ -32,14 +32,18 @@ And provide prediction for 20 different test cases.
 
 ## Loading and cleansing data
 
-```{r, cache=TRUE}
+The data downloaded from the website http://groupware.les.inf.puc-rio.br/har - Human Activity Recognition -> Weight Lifting Exercises Dataset. 
+
+```{r, cache=TRUE, echo=FALSE}
 train <- read.csv(file = "/Users/macbookpro/Downloads/pml-training.csv", header = TRUE, sep = ",")
 test <- read.csv(file = "/Users/macbookpro/Downloads/pml-testing.csv", header = TRUE, sep = ",")
 ```
 
-The test cases require predictions for particular moments with no connections to the style of particular athlet and it allows us to simply exclude from the following consideration the name of athlet and any time series data and row numbers. 
+Summary of loaded data provided in the appendix of this document. 
 
 ### Removing meaningless variables
+
+The test cases require predictions for particular moments with no connections to the style of particular athlet and it allows us to simply exclude from the following consideration the name of athlet and any time series data and row numbers. 
 
 ```{r}
 modelTrain <- subset(train, select = -c(user_name, raw_timestamp_part_1, raw_timestamp_part_2,
@@ -59,12 +63,24 @@ modelTrain[modelTrain == "#DIV/0!"] <- NA
 naVars <- data.frame(apply(modelTrain, 2, function(x) {sum(is.na(x))}))
 naVars$toRemove <- apply(naVars, 1, function(y) {y == length(modelTrain[, 1])})
 columnsToExclude <- rownames(naVars[naVars$toRemove == "TRUE", ])
-columnsToExclude
+```
 
+Columns to exclude due to emptiness.
+
+```{r}
+columnsToExclude
+```
+
+```{r, echo = FALSE}
 # Remove empty predictors
-modelTrain <- subset(modelTrain, select = -c(kurtosis_yaw_belt, skewness_yaw_belt, 
+modelTrain <- subset(modelTrain, 
+                     select = -c(kurtosis_yaw_belt, skewness_yaw_belt, 
                                              kurtosis_yaw_dumbbell, skewness_yaw_dumbbell, 
                                              kurtosis_yaw_forearm, skewness_yaw_forearm ))
+```
+
+```{r}
+dim(modelTrain)
 ```
 
 ### Make up column classes 
@@ -127,20 +143,24 @@ For classification task with more than two types of outcomes convinient to use c
 library(caret)
 library(randomForest)
 library(rattle)
+```
 
-modelRPART <- train(classe ~ ., method = "rpart", data = training,  na.action = na.pass)
+Building and validating predictability of the rpart model.
+
+```{r, cache=TRUE}
+modelRPART <- train(classe ~ ., method = "rpart", 
+                    data = training,  na.action = na.pass)
 print(modelRPART$finalModel)
 predRPART <- predict(modelRPART, subset(testing, select = -classe))
 confusionMatrix(predRPART, testing$classe)
 fancyRpartPlot(modelRPART$finalModel) 
+```
 
-#modelGBM <- train(classe ~ ., method = "gbm", data = training)
-#print(modelGBM$finalModel)
-#predGBM <- prediction(modelGBM, subset(testing, select = -classe))
-#confusionMatrix(predGBM, testing$classe)
-#varImpPlot(modelGBM$finalModel)
+The model looks absolutely surprisingly inefficient, even on the huge data set and it is not appropriate for further usage. But the processing time pretty quick and with more precisely prepared data set it might give better result.
 
-modelRF <- train(classe ~ ., method = "rf", data = training,  na.action = na.pass)
+```{r, cache = TRUE}
+modelRF <- train(classe ~ ., method = "rf", 
+                 data = training,  na.action = na.pass)
 print(modelRF$finalModel)
 predRF <- predict(modelRF, subset(testing, select = -classe))
 confusionMatrix(predRF, testing$classe)
@@ -153,8 +173,6 @@ Random forest gives an excellent result and should be used for futher prediction
 ## Test case prediction
 
 To use trained model on the test case all the data manipulations that were done with the train set should be applied to the test one.
-
-* Code not shown, but it is the same as test set manipulations - cleansing and reducing.*
 
 ```{r, echo = FALSE}
 testTry <- test
@@ -185,3 +203,11 @@ Final prediction of test cases gives the following vector:
 ```
 
 Which is: B A B A A E D B A A B C B A E E A B B B, and showed the 100% accuracy in test cases prediction. 
+
+## Appendix
+
+Summary of loaded data:
+
+```{r}
+str(train)
+```
