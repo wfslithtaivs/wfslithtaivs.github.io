@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Wfslithtaivs.GitHub.io : Practical Machine Learning, Project July 2015">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Wfslithtaivs.GitHub.io</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/wfslithtaivs">View on GitHub</a>
+
+          <h1 id="project_title">Wfslithtaivs.GitHub.io</h1>
+          <h2 id="project_tagline">Practical Machine Learning, Project July 2015</h2>
+
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a id="practical-machine-learning-project-july-15" class="anchor" href="#practical-machine-learning-project-july-15" aria-hidden="true"><span class="octicon octicon-link"></span></a>Practical Machine Learning, Project July ‘15</h1>
+
+<h4>
+<a id="kate-sergeeva" class="anchor" href="#kate-sergeeva" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>Kate Sergeeva</em>
+</h4>
+
+<div id="project-summary">
+<h2>
+<a id="project-summary" class="anchor" href="#project-summary" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project summary</h2>
+<p>The goal of this project is using machine learning techniques to find a best model which will be able to predict how good athletes are doing the particular types of exercises and helps to catch the common mistakes.</p>
+<p>Data for this project kindly provided by a group of enthusiasts who take measurements about themselves regularly using devices such as Jawbone Up, Nike FuelBand, and Fitbit to find patterns in their behavior to improve their health.</p>
+<p>We will use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.</p>
+<p><em>More information is available from the website here: <a href="http://groupware.les.inf.puc-rio.br/har">http://groupware.les.inf.puc-rio.br/har</a> (see the section on the Weight Lifting Exercise Dataset).</em></p>
+<p>Project report will describe the following: 
+</p>
+<ul>
+<li>how the model was built,</li>
+<li>how the cross-validation was used,</li>
+<li>how out of sample error was estimated,</li>
+<li>how other choices been made.</li>
+</ul>
+
+<p>And provide prediction for 20 different test cases.</p>
+</div>
+
+<div id="contents">
+<h2>
+<a id="contents" class="anchor" href="#contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contents</h2>
+<ul>
+<li>Loading and cleansing data</li>
+<li>Building models</li>
+<li>Cross-validation to measure “out of sample error”</li>
+<li>Model selection</li>
+<li>Report the results of test cases processing</li>
+</ul>
+</div>
+
+<div id="loading-and-cleansing-data">
+<h2>
+<a id="loading-and-cleansing-data" class="anchor" href="#loading-and-cleansing-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Loading and cleansing data</h2>
+<pre><code>train &lt;- read.csv(file = "/Users/macbookpro/Downloads/pml-training.csv", header = TRUE, sep = ",")
+test &lt;- read.csv(file = "/Users/macbookpro/Downloads/pml-testing.csv", header = TRUE, sep = ",")</code></pre>
+<p>The test cases require predictions for particular moments with no connections to the style of particular athlet and it allows us to simply exclude from the following consideration the name of athlet and any time series data and row numbers.</p>
+<div id="removing-meaningless-variables">
+<h3>
+<a id="removing-meaningless-variables" class="anchor" href="#removing-meaningless-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Removing meaningless variables</h3>
+<pre><code>modelTrain &lt;- subset(train, select = -c(user_name, raw_timestamp_part_1, raw_timestamp_part_2,
+                                        cvtd_timestamp, new_window, num_window, X))</code></pre>
+</div>
+
+<div id="handling-missing-values">
+<h3>
+<a id="handling-missing-values" class="anchor" href="#handling-missing-values" aria-hidden="true"><span class="octicon octicon-link"></span></a>Handling missing values</h3>
+<p>Closer look to the data showed that it contains some inappropriate symbols and true missing values, that is need to be handled of using replacement and imputing techniques.</p>
+<pre><code>modelTrain[modelTrain == ""] &lt;- NA
+#looks like data comes from the Excel or similar editor and contains such a nice 
+modelTrain[modelTrain == "#DIV/0!"] &lt;- NA 
+
+# Lookup for NA columns 
+naVars &lt;- data.frame(apply(modelTrain, 2, function(x) {sum(is.na(x))}))
+naVars$toRemove &lt;- apply(naVars, 1, function(y) {y == length(modelTrain[, 1])})
+columnsToExclude &lt;- rownames(naVars[naVars$toRemove == "TRUE", ])
+columnsToExclude</code></pre>
+<pre><code>## [1] "kurtosis_yaw_belt"     "skewness_yaw_belt"     "kurtosis_yaw_dumbbell"
+## [4] "skewness_yaw_dumbbell" "kurtosis_yaw_forearm"  "skewness_yaw_forearm"</code></pre>
+<pre><code># Remove empty predictors
+modelTrain &lt;- subset(modelTrain, select = -c(kurtosis_yaw_belt, skewness_yaw_belt, 
+                                             kurtosis_yaw_dumbbell, skewness_yaw_dumbbell, 
+                                             kurtosis_yaw_forearm, skewness_yaw_forearm ))</code></pre>
+</div>
+
+<div id="make-up-column-classes">
+<h3>
+<a id="make-up-column-classes" class="anchor" href="#make-up-column-classes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Make up column classes</h3>
+<p>Before any modeling it is a good idea to check the variables classes and make sure that thea are all have the correct data type.</p>
+<pre><code># Convert character columns into numeric
+library(taRifx)
+modelTrain &lt;- japply(modelTrain, which(sapply(modelTrain, class)=="character"),as.integer)
+modelTrain &lt;- japply(modelTrain, which(sapply(modelTrain, class)=="integer"),as.integer)
+modelTrain &lt;- japply(modelTrain, which(sapply(modelTrain, class)=="factor"),as.integer)
+
+# Convert classe to factor
+modelTrain$classe &lt;- as.factor(modelTrain$classe)</code></pre>
+</div>
+
+<div id="tricky-moment">
+<h3>
+<a id="tricky-moment" class="anchor" href="#tricky-moment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tricky moment</h3>
+<p>Current number of variables most likely will cause the very long executing process and it would be better to reduce some dimensions. For example, instead of using nearZeroVar function I decided to play with lucky “cut-off” around number of missing values in the “nothing to impute about” columns.</p>
+<pre><code>library(e1071)
+dim(modelTrain)</code></pre>
+<pre><code>## [1] 19622   147</code></pre>
+<pre><code>modelTrain[is.na(modelTrain)] &lt;- 0
+colAn &lt;- data.frame(colSums(subset(modelTrain, select = -classe) == 0))
+modelTrain &lt;- modelTrain[, - which(colAn[, 1] &gt; 19000)] 
+dim(modelTrain)</code></pre>
+<pre><code>## [1] 19622    53</code></pre>
+<p>Now we have ready to modeling clean and nice data set with a manageable number of predictors.</p>
+</div>
+
+<p></p>
+</div>
+
+<div id="building-models">
+<h2>
+<a id="building-models" class="anchor" href="#building-models" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building models</h2>
+<p>Before going deep into modeling better previously to take care of possible ways of improving productivity of your computer and use parallel processing if it is possible.</p>
+<pre><code># Do parallel 
+library(doParallel)
+registerDoParallel(cores=4)</code></pre>
+<div id="subsetting-data-for-cross-validation">
+<h3>
+<a id="subsetting-data-for-cross-validation" class="anchor" href="#subsetting-data-for-cross-validation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Subsetting data for cross-validation</h3>
+<p>The idea of cross-validation is very nice and undoubtedly useful - to split data into two separated parts (around 70/30), learn the model at the biggest one and than estimate the out of sample error on the smallest one. The idea might be complicated with number of splits and their usage, but in case of our pretty huge data set with the managable amount of predictors I will follow of idea of just two random splits.</p>
+<pre><code>library(caret)</code></pre>
+## Loading required package: ggplot2
+<pre><code>inTrain &lt;- createDataPartition(y = modelTrain$classe, p = 0.7, list = FALSE)
+training &lt;- modelTrain[inTrain, ] 
+testing &lt;- modelTrain[-inTrain, ]
+dim(training); dim(testing)</code></pre>
+<pre><code>## [1] 13737    53</code></pre>
+<pre><code>## [1] 5885   53</code></pre>
+</div>
+
+<div id="modeling">
+<h3>
+<a id="modeling" class="anchor" href="#modeling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modeling</h3>
+<p>For classification task with more than two types of outcomes convinient to use classification trees algorithms and two different tree-based models will be trained - regular classification tree provided by “rpart”-method and random forest.</p>
+<pre><code>library(caret)
+library(randomForest)</code></pre>
+<pre><code>## randomForest 4.6-10
+## Type rfNews() to see new features/changes/bug fixes.</code></pre>
+<pre><code>library(rattle)</code></pre>
+<pre><code>modelRPART &lt;- train(classe ~ ., method = "rpart", data = training,  na.action = na.pass)</code></pre>
+<pre><code>print(modelRPART$finalModel)</code></pre>
+<pre><code>## n= 13737 
+## 
+## node), split, n, loss, yval, (yprob)
+##       * denotes terminal node
+## 
+##  1) root 13737 9831 1 (0.28 0.19 0.17 0.16 0.18)  
+##    2) roll_belt&lt; 130.5 12600 8706 1 (0.31 0.21 0.19 0.18 0.11)  
+##      4) pitch_forearm&lt; -33.35 1101   10 1 (0.99 0.0091 0 0 0) *
+##      5) pitch_forearm&gt;=-33.35 11499 8696 1 (0.24 0.23 0.21 0.2 0.12)  
+##       10) magnet_dumbbell_y&lt; 439.5 9718 6974 1 (0.28 0.18 0.24 0.19 0.11)  
+##         20) roll_forearm&lt; 123.5 6043 3582 1 (0.41 0.18 0.18 0.17 0.062) *
+##         21) roll_forearm&gt;=123.5 3675 2457 3 (0.077 0.18 0.33 0.23 0.19) *
+##       11) magnet_dumbbell_y&gt;=439.5 1781  880 2 (0.033 0.51 0.048 0.22 0.19) *
+##    3) roll_belt&gt;=130.5 1137   12 5 (0.011 0 0 0 0.99) *</code></pre>
+<pre><code>predRPART &lt;- predict(modelRPART, subset(testing, select = -classe))
+confusionMatrix(predRPART, testing$classe)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    1    2    3    4    5
+##          1 1533  478  495  437  147
+##          2   22  385   22  174  145
+##          3  117  276  509  353  284
+##          4    0    0    0    0    0
+##          5    2    0    0    0  506
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.4984          
+##                  95% CI : (0.4855, 0.5112)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.3439          
+##  Mcnemar's Test P-Value : NA              
+## 
+## Statistics by Class:
+## 
+##                      Class: 1 Class: 2 Class: 3 Class: 4 Class: 5
+## Sensitivity            0.9158  0.33802  0.49610   0.0000  0.46765
+## Specificity            0.6303  0.92351  0.78802   1.0000  0.99958
+## Pos Pred Value         0.4961  0.51471  0.33073      NaN  0.99606
+## Neg Pred Value         0.9496  0.85322  0.88104   0.8362  0.89288
+## Prevalence             0.2845  0.19354  0.17434   0.1638  0.18386
+## Detection Rate         0.2605  0.06542  0.08649   0.0000  0.08598
+## Detection Prevalence   0.5251  0.12710  0.26151   0.0000  0.08632
+## Balanced Accuracy      0.7730  0.63077  0.64206   0.5000  0.73362</code></pre>
+<pre><code>fancyRpartPlot(modelRPART$finalModel) </code></pre>
+<p><img src="https://raw.githubusercontent.com/wfslithtaivs/wfslithtaivs.github.io/master/PML-Project_files/figure-html/unnamed-chunk-8-1.png" title alt width="672"></p>
+<pre><code>#modelGBM &lt;- train(classe ~ ., method = "gbm", data = training)
+#print(modelGBM$finalModel)
+#predGBM &lt;- prediction(modelGBM, subset(testing, select = -classe))
+#confusionMatrix(predGBM, testing$classe)
+#varImpPlot(modelGBM$finalModel)
+
+#modelRF &lt;- train(classe ~ ., method = "rf", data = training,  na.action = na.pass)
+#print(modelRF$finalModel)
+#predRF &lt;- predict(modelRF, subset(testing, select = -classe))
+#confusionMatrix(predRF, testing$classe)
+#varImpPlot(modelRF$finalModel)
+#plot(modelRF$finalModel, log = "y")</code></pre>
+<p>Random forest gives an excellent result and should be used for futher predictions.</p>
+</div>
+
+<p></p>
+</div>
+
+<div id="test-case-prediction">
+<h2>
+<a id="test-case-prediction" class="anchor" href="#test-case-prediction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Test case prediction</h2>
+<p>To use trained model on the test case all the data manipulations that were done with the train set should be applied to the test one.</p>
+Code not shown, but it is the same as test set manipulations - cleansing and reducing.
+<p>Final prediction of test cases gives the following vector:</p>
+<pre><code>predTestTry &lt;- predict(modelRF, testTry)</code></pre>
+<p>Which is: B A B A A E D B A A B C B A E E A B B B, and showed the 100% accuracy in test cases prediction.</p>
+</div>
+
+<p></p>
+
+
+
+
+
+
+
+<p></p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
