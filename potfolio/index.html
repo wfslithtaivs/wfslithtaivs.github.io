@@ -16,7 +16,8 @@
      
     ul {
       padding: 10px;
-      background: rgba(0,0,0,0.5);
+      margin: 0px auto;
+      background: rgba(0,0,0,0.2);
     }
     li {
       display: inline;
@@ -37,13 +38,17 @@
         display: block;
       }
     } 
-     
+    
+    ol {
+        margin: 10px;
+      }
      
     input {
       border: 0;
       padding: 10px;
       font-size: 14px;
     }
+    
     input[type="submit"] {
       background: red;
       color: white;
@@ -54,17 +59,11 @@
       width: 150px;
       height: 150px; 
     }
-    
-    
-  ol {
-    background: #ff9999;
-    padding: 10px;
-  }
-
-  ul {
-    background: #3399ff;
-    padding: 10px;
-  }
+    #rounded-buttons {
+      border-radius: 110px;
+      padding: 10px auto;
+      margin: 5px;
+    }
   
    a:link, a:visited {
     background-color: #f44336;
@@ -76,7 +75,6 @@
 }
      
     
-
   a:hover, a:active {
     background-color: red;
   }
@@ -89,14 +87,17 @@
 
   <ul>
     <p>Take a look at my projects:</p>
-    <ol><a href="https://wfslithtaivs.shinyapps.io/zodiakny/" target="_blank">Fun with data</a>        </ol>
-    <ol><a href="http://wfslithtaivs.github.io/" target="_blank">Machine learning practice</a></ol>
+    <ol><a id="rounded-buttons" href="https://wfslithtaivs.shinyapps.io/zodiakny/" target="_blank">Fun with data</a>  </ol>
+    <ol><a id="rounded-buttons" href="http://wfslithtaivs.github.io/" target="_blank">Machine learning practice</a></ol>
   </ul>
   
-   <input type="email" placeholder="Your email">
-  <input type="submit" value="Keep in touch">
+  <article>
+    <input  id="rounded-buttons" type="email" placeholder="Your email">
+    <input  id="rounded-buttons" type="submit" value="Keep in touch">
+  </article>
   
   <script>
-    $("submit").on("click", function() {alert("clicked!");})
+    $('input[type = "submit"]').on('click', function() { alert('Keep clicking!'); });
   </script>
+  
 </body>
