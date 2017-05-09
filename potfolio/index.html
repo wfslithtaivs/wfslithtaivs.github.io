@@ -13,6 +13,32 @@
     p {
       font-size: 22px;
     }
+     
+    ul {
+      padding: 10px;
+      background: rgba(0,0,0,0.5);
+    }
+    li {
+      display: inline;
+      padding: 0px 10px 0px 10px;
+    }
+    article {
+      max-width: 500px;
+      padding: 20px;
+      margin: 0 auto;
+    }
+    @media (max-width: 500px) {
+      h1 {
+        font-size: 36px;
+        padding: 5px;
+      }
+      li {
+        padding: 5px;
+        display: block;
+      }
+    } 
+     
+     
     input {
       border: 0;
       padding: 10px;
@@ -48,10 +74,12 @@
     text-decoration: none;
     display: inline-block;
 }
+     
+    
 
-a:hover, a:active {
+  a:hover, a:active {
     background-color: red;
-}
+  }
 </style>
 </head>
 <body>
@@ -67,4 +95,8 @@ a:hover, a:active {
   
    <input type="email" placeholder="Your email">
   <input type="submit" value="Keep in touch">
+  
+  <script>
+    $("submit").on("click", function() {alert("clicked!");})
+  </script>
 </body>
