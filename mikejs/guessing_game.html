@@ -1,0 +1,214 @@
+ 
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Word Scramble</title>
+</head>
+<body>
+    <h1>A JavaScript Word Scramble Game</h1>
+    
+    <p> Round 1. Push "Play" to see scrambled letters 1 at a time.</p>
+    <p> Push "Pause" to make a guess.</p>
+    
+    <p id="text-field"></p>
+    
+    <form id="get_input">
+        <input id="guess-word" type="text">
+        <input id="submit-guess" type="submit" value="Submit guess" disabled>
+    </form>
+    
+    <br>
+    
+    <p> Round 2. Push "Play" to see scrambled letters 1 at a time.</p>
+    <p> Push "Pause" to make a guess.</p>
+    
+    <button id="play" value="Play">Play</button>
+    <button id="pause" value="Pause" disabled>Pause</button>
+
+    <p id="game-result"></p>
+    
+    <p id="text-field-2"></p>
+ 
+    <form id="get_input-2">
+        <input id="guess-word-2" type="text">
+        <input id="submit-guess-2" type="submit" value="Submit guess" disabled>
+    </form>
+        
+    <button id="play-2" value="Play" disabled>Play</button>
+    <button id="pause-2" value="Pause" disabled>Pause</button>
+    
+    <br>
+  
+    <script>
+        "use strict";
+        
+        var WORDS = ["lumberjack", "mozzarella", "explicable", "outjumping", "colloquium"];
+        
+        var MEANINGS = ["the worker in the logging industry who performs the initial harvesting and transport of trees for ultimate processing into forest products", 
+                        "is a traditionally southern Italian dairy product made from Italian buffalo's milk by the pasta filata method", 
+                        "capable of being explained",
+                        "jump higher or further than", 
+                        "is an academic conference or meeting"]
+        
+        function scramble_word(eggs) {
+            var scrambled_eggs = [];
+            eggs = eggs.split('');
+            while (eggs.length > 0) {
+                var index = Math.floor(Math.random() * eggs.length);
+                scrambled_eggs.push(eggs[index]);
+                eggs.splice(index, 1);
+            } 
+            return scrambled_eggs.join('');
+        }
+        
+        var c = 10;
+        var state;
+        var index;
+        var get_word;
+        var scr_word;
+        
+        var message = document.getElementById("text-field");
+        var message2 = document.getElementById("text-field-2");
+        var result = document.getElementById("game-result");
+        var play = document.getElementById("play");
+        var pause = document.getElementById("pause");
+        var submit_guess = document.getElementById("submit-guess");
+        var t;
+        var user_guess;
+  
+        function game() {
+            
+            if(state == "ENABLE-2") {
+                second_chance();
+                return;
+            }
+            
+            if(state === "PAUSE") {
+                return;
+            }
+            
+            if (c === 0) {
+                game_over("ENABLE-2");
+                return;
+            }
+            
+            if (c === 10) {
+                index = Math.floor(Math.random() * WORDS.length);
+                get_word = WORDS[index];
+                scr_word = scramble_word(get_word);
+            }
+            
+            if (c > 0) {
+                message.innerText = "One of the letters is: " + scr_word[c - 1];
+                c -= 1;
+            }
+            
+            t = setTimeout(game, 1000);
+        }
+        
+        function second_chance(){
+        
+            if (c === 0){
+                game_over("SECOND OVER");
+                return;
+            }
+            
+            if (c > 0) {
+                var left_fill = "";
+                for(var i = 0; i < c - 1; i++) {
+                    left_fill+= "- ";
+                }
+                var right_fill = "";
+                for(var i = 0; i < 10 - c + 1; i++){
+                    right_fill += " -";
+                }
+                message2.innerText = left_fill + scr_word[c - 1] + right_fill;
+                console.log(c);
+                c -= 1;
+            }
+            t = setTimeout(second_chance, 1000);
+        }
+        
+        
+        function game_over(stt) {
+            result.innerText += "Let's play again.";
+            c = 10;
+            state = stt;
+            
+            if (stt === "ENABLE-2") {
+                second_round.disabled = false;
+                play.disabled = true;
+                pause.disabled = true;
+                submit_guess.disabled = true;
+            }
+            
+            
+            if (stt === "SECOND OVER") {
+                
+            }
+            
+            clearTimeout(t);
+        }
+        
+        play.addEventListener('click', function (){
+            play.disabled = true;
+            pause.disabled = false;
+            state = "PLAY";
+            game();
+        });
+        
+        pause.addEventListener('click', function () {
+            submit_guess.disabled = false;
+            state = "PAUSE";
+            clearTimeout(t);
+        });
+        
+        submit_guess.addEventListener('click', function (evt){
+            evt.preventDefault();
+            user_guess = document.getElementById("guess-word");
+            
+            if(user_guess.value === scr_word){
+                result.innerText = "Congrats! ";
+            }
+            else {
+                result.innerText = "Nooopsie. ";
+            } 
+            user_guess.value = "";
+            game_over("ENABLE-2");
+        });
+        
+        var second_round = document.getElementById("play-2");
+        second_round.addEventListener('click', function () {
+            second_round.disabled = true;
+            second_round_pause.disabled = false;
+            second_chance();
+        });
+        
+        var submit_second_guess = document.getElementById("submit-guess-2");
+        var second_round_pause = document.getElementById("pause-2");
+        second_round_pause.addEventListener('click', function () {
+            state = "PAUSE";
+            clearTimeout(t);
+            submit_second_guess.disabled = false;
+        });
+        
+        submit_second_guess.addEventListener('click', function (evt){
+            user_guess = document.getElementById("guess-word-2");
+            
+            if(user_guess.value === scr_word){
+                result.innerText = "Congrats! ";
+            }
+            else {
+                result.innerText = "Nooopsie. ";
+            }
+            
+            user_guess.value = "";
+            result.innerText += "You did it !";
+            console.log("I'm in show_result");
+        });
+        
+        
+    </script>
+    
+</body>
+</html>
