@@ -21,8 +21,6 @@
     
     <button id="play" value="Play">Play</button>
     <button id="pause" value="Pause" disabled>Pause</button>
-
-    <p id="game-result"></p>
     
     <p> Round 2. Push "Play" to see scrambled letters 1 at a time.</p>
     <p> Push "Pause" to make a guess.</p>
@@ -39,6 +37,8 @@
     <button id="pause-2" value="Pause" disabled>Pause</button>
     
     <br>
+    
+    <strong><p id="game-result"></p></strong>
   
     <script>
         "use strict";
@@ -124,7 +124,6 @@
                     right_fill += " -";
                 }
                 message2.innerText = left_fill + scr_word[c - 1] + right_fill;
-                console.log(c);
                 c -= 1;
             }
             t = setTimeout(second_chance, 1000);
@@ -132,7 +131,7 @@
         
         
         function game_over(stt) {
-            result.innerText += "Let's play again.";
+            result.innerText += "Let's play the next round.";
             c = 10;
             state = stt;
             
@@ -205,7 +204,6 @@
             
             user_guess.value = "";
             result.innerText += "You did it !";
-            console.log("I'm in show_result");
         });
         
         
